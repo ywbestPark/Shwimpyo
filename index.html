@@ -67,10 +67,12 @@ function restart(){S.step=0;S.a={};save();render()}
 
 // 질문 정의: 모든 질문에 '잘 모르겠어요'와 '건너뛰기'를 둔다 (자유 서술은 요구하지 않음)
 var Q=[
- {k:"feel",t:"지금 마음에 가장 가까운 것은?",o:["이혼을 생각 중이에요","별거를 생각 중이에요","관계를 되돌리고 싶어요","아직 잘 모르겠어요"]},
- {k:"years",t:"함께한 기간은 어느 정도예요?",o:["5년 미만","5~15년","15년 이상"]},
- {k:"kids",t:"함께 키우는 자녀가 있나요?",o:["있어요","없어요"]},
- {k:"hard",t:"지금 가장 힘든 것은? (여러 개 가능)",multi:1,o:["계속되는 갈등","신뢰가 깨진 것","대화가 안 되는 것","경제적인 문제","외로움과 지침","잘 모르겠어요"]}
+ {k:"feel",t:"요즘 마음에 가장 가까운 건 어느 쪽인가요?",o:["이혼 쪽으로 마음이 기울어요","잠시 떨어져 지내고 싶어요","관계를 다시 이어가고 싶어요","마음이 왔다 갔다 해요","아직 정리가 안 돼요"]},
+ {k:"years",t:"함께한 시간은 어느 정도인가요?",o:["5년 미만","5~15년","15년 이상","말하고 싶지 않아요"]},
+ {k:"kids",t:"함께 돌보는 아이가 있나요?",o:["미성년 자녀가 있어요","자녀가 이미 성인이에요","없어요","말하고 싶지 않아요"]},
+ {k:"hard",t:"요즘 가장 마음이 무거운 부분은요? (여러 개 골라도 돼요)",multi:1,o:["자주 부딪혀요","믿음이 흔들렸어요","대화가 잘 안 돼요","돈 문제가 걱정돼요","외롭고 지쳐요","아이가 걱정돼요","잘 모르겠어요"]},
+ // 안전 확인: 첫 번째 선택지("아니요") 외를 고르면 긴급 안내를 먼저 보여준다 (pick() 참고)
+ {k:"safe",t:"혹시 지금 안전이 걱정되는 일이 있나요?",o:["아니요","조금 불안해요","네, 안전이 걱정돼요"]}
 ];
 var app=document.getElementById("app");
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -87,7 +89,7 @@ function go(n){S.step=n;save();render();window.scrollTo(0,0)}
 
 function intro(){
  app.innerHTML='<h1>쉼표</h1><p class="sub">마음을 정리하는 잠깐의 쉼</p>'+
- '<div class="promise"><div>이름도 가입도 묻지 않아요</div><div>내용은 이 기기에만 저장돼요</div><div>어느 쪽으로도 권하지 않아요</div></div>'+
+ '<div class="promise"><div>이름·연락처는 묻지 않아요</div><div>내용은 이 기기에만 저장돼요</div><div>어느 쪽으로도 권하지 않아요</div></div>'+
  '<p class="sub">결정은 언제나 당신의 몫이에요. 여기서는 생각을 정리하는 것만 도와요.</p>'+
  '<button class="pri" onclick="go(1)">편하게 시작하기</button>';
 }
@@ -106,21 +108,27 @@ function ask(i){
 function pick(i,j){
  var q=Q[i],v=q.o[j];
  if(q.multi){var c=S.a[q.k]||[],p=c.indexOf(v);if(p>-1)c.splice(p,1);else c.push(v);S.a[q.k]=c;save();ask(i)}
- else{S.a[q.k]=v;go(S.step+1)}
+ else{S.a[q.k]=v;go(S.step+1);if(q.k==="safe"&&v!==q.o[0]){setTimeout(function(){sos.showModal()},150)}}
 }
 
-// 첫 응답: 조언 없이 상황을 비춰주기만 한다
+// 첫 응답: 조언 없이, 사용자가 고른 말을 그대로 되돌려 준다 (짐작·단정 금지)
 function mirror(){
- var a=S.a,parts=[];
- if(a.feel&&a.feel!=="아직 잘 모르겠어요")parts.push("지금 마음은 ‘"+a.feel.replace(/요$/,"")+"’ 쪽에 가까운 것 같아요.");
- else parts.push("아직 마음을 정하지 못한 상태예요. 그건 자연스러운 일이에요.");
- if(a.hard&&a.hard.length&&a.hard.join()!=="잘 모르겠어요")parts.push("가장 힘든 건 "+a.hard.filter(function(x){return x!=="잘 모르겠어요"}).join(", ")+"이에요.");
- if(a.kids==="있어요")parts.push("함께 키우는 아이가 있어서 생각할 것이 더 많겠어요.");
- app.innerHTML='<h2>들려줘서 고마워요</h2><div class="mirror">'+parts.map(esc).join("<br>")+'</div>'+
+ var a=S.a,p=[],unsure=["마음이 왔다 갔다 해요","아직 정리가 안 돼요"];
+ if(a.feel){
+  p.push("‘"+a.feel+"’라고 고르셨어요.");
+  p.push(unsure.indexOf(a.feel)>-1?"이 단계에서는 아주 흔한 일이에요.":"그 마음을 그대로 두고, 천천히 살펴봐요.");
+ }else p.push("아직 마음을 정하지 못했어도 괜찮아요.");
+ var hard=(a.hard||[]).filter(function(x){return x!=="잘 모르겠어요"});
+ if(hard.length)p.push("마음이 무거운 부분으로 "+hard.map(function(x){return"‘"+x+"’"}).join(", ")+"를 고르셨어요.");
+ if(a.kids==="미성년 자녀가 있어요")p.push("아이가 함께 있어서 생각할 게 더 많겠어요.");
+ p.push("정답을 바로 찾지 않아도 괜찮아요. 천천히 정리해 봐요.");
+ var risk=a.safe&&a.safe!=="아니요";
+ var safeBox=risk?'<div class="mirror" style="border:1px solid var(--warn)"><b>안전이 걱정된다고 하셨어요.</b><br>먼저 아래 연락처를 확인해 주세요.<br>112 · 1366 · 109<br><button class="ghost" onclick="sos.showModal()">자세히 보기</button></div>':"";
+ app.innerHTML='<h2>들려줘서 고마워요</h2>'+safeBox+'<div class="mirror">'+p.map(esc).join("<br>")+'</div>'+
  '<p class="sub">어떻게 이어가고 싶으세요?</p>'+
  '<button class="opt" onclick="go('+(Q.length+3)+')">이야기를 더 해볼래요</button>'+
- '<button class="opt" onclick="go('+(Q.length+2)+')">세 가지 선택지를 비교해 볼래요</button>'+
- '<button class="opt" onclick="go('+(Q.length+4)+')">그냥 둘러볼게요</button>';
+ '<button class="opt" onclick="go('+(Q.length+2)+')">선택지를 나란히 비교해 볼래요</button>'+
+ '<button class="opt" onclick="go('+(Q.length+4)+')">오늘은 그냥 둘러볼게요</button>';
 }
 
 // 선택지 비교: 같은 기준으로 나란히 보여준다. 법적 세부사항은 일반 정보이며 확인이 필요하다고 명시.
@@ -131,7 +139,7 @@ function compare(){
   ["관계 회복",["관계를 유지하며 문제를 다뤄요","부부 상담, 가족 상담 등을 함께 선택할 수 있어요","생활 변화는 적지만 노력이 양쪽에서 필요해요","시간이 걸리고, 한쪽만 원하면 어려울 수 있어요"]]
  ],L=["법적 상태","절차","생활·자녀","마음"],h='<h2>세 가지 선택지, 같은 기준으로</h2>';
  d.forEach(function(x){h+='<div class="cmp"><h3>'+x[0]+'</h3><dl>';x[1].forEach(function(t,i){h+='<dt>'+L[i]+'</dt><dd>'+t+'</dd>'});h+='</dl></div>'});
- h+='<p class="sub">일반적인 안내예요. 실제 절차와 기간은 상황마다 달라서, 결정 전에 법원·전문가에게 꼭 확인하세요.</p>'+
+ h+='<p class="sub">어느 쪽이 맞는지는 이 화면이 정하지 않아요. 일반적인 안내이고, 실제 절차는 상황마다 달라서 결정 전에 전문가나 법원에 확인해 주세요.</p>'+
  '<button class="pri" onclick="go('+(Q.length+3)+')">이야기를 더 해볼래요</button><button class="ghost" onclick="go('+(Q.length+1)+')">뒤로</button>';
  app.innerHTML=h;
 }
