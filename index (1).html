@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>쉼표</title>
+<meta name="theme-color" content="#4f7a6a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="쉼표">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--tx:#2a2a28;--sub:#6b6a66;--ac:#4f7a6a;--acbg:#e3eee9;--bd:#e2dfd6;--warn:#b4492f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1d1b;--card:#262826;--tx:#ecebe6;--sub:#a3a29b;--ac:#8fc0ad;--acbg:#2c3a35;--bd:#3a3c38;--warn:#e58a72}}
+:root[data-theme="dark"]{--bg:#1c1d1b;--card:#262826;--tx:#ecebe6;--sub:#a3a29b;--ac:#8fc0ad;--acbg:#2c3a35;--bd:#3a3c38;--warn:#e58a72}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+main{max-width:480px;margin:0 auto;padding:24px 20px 96px}
+h1{font-size:26px;margin:32px 0 8px}h2{font-size:20px;margin:24px 0 12px;line-height:1.4}
+p{margin:0 0 12px}.sub{color:var(--sub);font-size:14px}
+.promise{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:6px 16px;margin:20px 0}
+.promise div{padding:10px 0;border-bottom:1px solid var(--bd)}.promise div:last-child{border:0}
+button{font:inherit;color:inherit;cursor:pointer}
+.opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin:0 0 10px}
+.opt.sel{border-color:var(--ac);background:var(--acbg)}
+.pri{display:block;width:100%;background:var(--ac);color:#fff;border:0;border-radius:12px;padding:14px;margin-top:16px;font-weight:600}
+:root[data-theme="dark"] .pri,:root:not([data-theme="light"]) .pri{color:#10201a}
+.ghost{background:none;border:0;color:var(--sub);padding:12px 0;text-decoration:underline;font-size:14px}
+.bar{height:4px;background:var(--bd);border-radius:2px;margin-bottom:8px}.bar i{display:block;height:100%;background:var(--ac);border-radius:2px;transition:width .3s}
+.mirror{background:var(--acbg);border-radius:14px;padding:16px;margin:12px 0 20px}
+.cmp{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.cmp h3{margin:0 0 8px;font-size:17px}.cmp dt{font-size:12px;color:var(--sub);margin-top:8px}.cmp dd{margin:0}
+.dock{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--bd)}
+.dock button{background:none;border:0;font-size:13px;color:var(--sub);padding:6px 4px}
+.dock .sos{color:var(--warn);font-weight:600}
+dialog{border:1px solid var(--bd);border-radius:16px;background:var(--card);color:var(--tx);max-width:420px;width:calc(100% - 32px);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div class="dock">
+  <button class="sos" onclick="sos.showModal()">긴급 도움</button>
+  <button id="backBtn" onclick="back()" style="visibility:hidden">← 이전</button>
+  <button onclick="restart()">처음으로</button>
+  <button onclick="wipe()">기록 모두 삭제</button>
+</div>
+
+<dialog id="sos">
+  <h2 style="margin-top:0">지금 안전이 걱정된다면</h2>
+  <p>폭력이나 위협이 있거나 스스로를 해칠 것 같다면 먼저 아래로 연락해 주세요.</p>
+  <p><b>112</b> 긴급 신고<br><b>1366</b> 여성긴급전화(24시간)<br><b>109</b> 자살예방 상담전화</p>
+  <button class="pri" onclick="sos.close()">닫기</button>
+</dialog>
+
+<script>
+// 앱 상태: 서버로 전송하지 않고 이 기기(localStorage)에만 저장한다는 약속을 코드로도 지킨다.
+var KEY="shwimpyo.v1", S={step:0,a:{}};
+try{var raw=localStorage.getItem(KEY);if(raw)S=JSON.parse(raw)}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function wipe(){if(!confirm("이 기기에 저장된 기록을 모두 지울까요?"))return;try{localStorage.removeItem(KEY)}catch(e){}S={step:0,a:{},hist:[]};render()}
+function restart(){S.step=0;S.a={};S.hist=[];save();render()}
+
+// 질문 정의: 모든 질문에 '잘 모르겠어요'와 '건너뛰기'를 둔다 (자유 서술은 요구하지 않음)
+var Q=[
+ {k:"feel",t:"요즘 마음에 가장 가까운 건 어느 쪽인가요?",o:["이혼 쪽으로 마음이 기울어요","잠시 떨어져 지내고 싶어요","관계를 다시 이어가고 싶어요","마음이 왔다 갔다 해요","아직 정리가 안 돼요"]},
+ {k:"years",t:"함께한 시간은 어느 정도인가요?",o:["5년 미만","5~15년","15년 이상","말하고 싶지 않아요"]},
+ {k:"kids",t:"함께 돌보는 아이가 있나요?",o:["미성년 자녀가 있어요","자녀가 이미 성인이에요","없어요","말하고 싶지 않아요"]},
+ {k:"hard",t:"요즘 가장 마음이 무거운 부분은요? (여러 개 골라도 돼요)",multi:1,o:["자주 부딪혀요","믿음이 흔들렸어요","대화가 잘 안 돼요","돈 문제가 걱정돼요","외롭고 지쳐요","아이가 걱정돼요","잘 모르겠어요"]},
+ // 안전 확인: 첫 번째 선택지("아니요") 외를 고르면 긴급 안내를 먼저 보여준다 (pick() 참고)
+ {k:"safe",t:"혹시 지금 안전이 걱정되는 일이 있나요?",o:["아니요","조금 불안해요","네, 안전이 걱정돼요"]}
+];
+var app=document.getElementById("app");
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+function renderStep(){
+ if(S.step===0)return intro();
+ if(S.step<=Q.length)return ask(S.step-1);
+ if(S.step===Q.length+1)return mirror();
+ if(S.step===Q.length+2)return compare();
+ if(S.step===Q.length+3)return talk();
+ if(S.step===Q.length+4)return browse();
+}
+function render(){renderStep();updateDock()}
+function go(n){
+ if(S.step!==n){S.hist=S.hist||[];S.hist.push(S.step)} // 이전으로 돌아갈 수 있도록 현재 단계 기록
+ S.step=n;save();render();window.scrollTo(0,0)
+}
+function back(){
+ var h=S.hist||[];if(!h.length)return;
+ S.step=h.pop();save();render();window.scrollTo(0,0)
+}
+// 이전 버튼은 돌아갈 곳이 있을 때만 보이게 한다
+function updateDock(){var b=document.getElementById("backBtn");if(b)b.style.visibility=(S.hist&&S.hist.length)?"visible":"hidden"}
+
+function intro(){
+ app.innerHTML='<h1>쉼표</h1><p class="sub">마음을 정리하는 잠깐의 쉼</p>'+
+ '<div class="promise"><div>이름·연락처는 묻지 않아요</div><div>내용은 이 기기에만 저장돼요</div><div>어느 쪽으로도 권하지 않아요</div></div>'+
+ '<p class="sub">결정은 언제나 당신의 몫이에요. 여기서는 생각을 정리하는 것만 도와요.</p>'+
+ '<button class="pri" onclick="go(1)">편하게 시작하기</button>';
+}
+
+function ask(i){
+ var q=Q[i],cur=S.a[q.k]||(q.multi?[]:null);
+ var h='<div class="bar"><i style="width:'+((i+1)/Q.length*100)+'%"></i></div><h2>'+q.t+'</h2>';
+ q.o.forEach(function(o,j){
+  var on=q.multi?cur.indexOf(o)>-1:cur===o;
+  h+='<button class="opt'+(on?' sel':'')+'" onclick="pick('+i+','+j+')">'+esc(o)+'</button>';
+ });
+ if(q.multi)h+='<button class="pri" onclick="go('+(S.step+1)+')">다음</button>';
+ h+='<button class="ghost" onclick="go('+(S.step+1)+')">건너뛰기</button>';
+ app.innerHTML=h;
+}
+function pick(i,j){
+ var q=Q[i],v=q.o[j];
+ if(q.multi){var c=S.a[q.k]||[],p=c.indexOf(v);if(p>-1)c.splice(p,1);else c.push(v);S.a[q.k]=c;save();ask(i)}
+ else{S.a[q.k]=v;go(S.step+1);if(q.k==="safe"&&v!==q.o[0]){setTimeout(function(){document.getElementById("sos").showModal()},150)}}
+}
+
+// 첫 응답: 조언 없이, 사용자가 고른 말을 그대로 되돌려 준다 (짐작·단정 금지)
+function mirror(){
+ var a=S.a,p=[],unsure=["마음이 왔다 갔다 해요","아직 정리가 안 돼요"];
+ if(a.feel){
+  p.push("‘"+a.feel+"’라고 고르셨어요.");
+  p.push(unsure.indexOf(a.feel)>-1?"이 단계에서는 아주 흔한 일이에요.":"그 마음을 그대로 두고, 천천히 살펴봐요.");
+ }else p.push("아직 마음을 정하지 못했어도 괜찮아요.");
+ var hard=(a.hard||[]).filter(function(x){return x!=="잘 모르겠어요"});
+ if(hard.length)p.push("마음이 무거운 부분으로 "+hard.map(function(x){return"‘"+x+"’"}).join(", ")+"를 고르셨어요.");
+ if(a.kids==="미성년 자녀가 있어요")p.push("아이가 함께 있어서 생각할 게 더 많겠어요.");
+ p.push("정답을 바로 찾지 않아도 괜찮아요. 천천히 정리해 봐요.");
+ var risk=a.safe&&a.safe!=="아니요";
+ var safeBox=risk?'<div class="mirror" style="border:1px solid var(--warn)"><b>안전이 걱정된다고 하셨어요.</b><br>먼저 아래 연락처를 확인해 주세요.<br>112 · 1366 · 109<br><button class="ghost" onclick="sos.showModal()">자세히 보기</button></div>':"";
+ app.innerHTML='<h2>들려줘서 고마워요</h2>'+safeBox+'<div class="mirror">'+p.map(esc).join("<br>")+'</div>'+
+ '<p class="sub">어떻게 이어가고 싶으세요?</p>'+
+ '<button class="opt" onclick="go('+(Q.length+3)+')">이야기를 더 해볼래요</button>'+
+ '<button class="opt" onclick="go('+(Q.length+2)+')">선택지를 나란히 비교해 볼래요</button>'+
+ '<button class="opt" onclick="go('+(Q.length+4)+')">오늘은 그냥 둘러볼게요</button>';
+}
+
+// 선택지 비교: 같은 기준의 기본 안내 + 사용자의 답변에 따라 달라지는 '생각해 볼 질문'.
+// 질문 형태로 쓰는 이유: 조언은 한쪽으로 기울 수 있지만 질문은 사용자가 스스로 답을 찾게 한다.
+function compare(){
+ var a=S.a,hard=a.hard||[],kids=a.kids,years=a.years;
+ function has(x){return hard.indexOf(x)>-1}
+ var risk=a.safe&&a.safe!=="아니요";
+ var chosen=[a.feel,years,kids].concat(hard).filter(function(x){return x&&x!=="잘 모르겠어요"&&x!=="말하고 싶지 않아요"});
+ var q=[[],[],[]]; // 0=이혼, 1=별거, 2=관계 회복
+ if(kids==="미성년 자녀가 있어요"){
+  q[0].push("아이의 양육은 어떻게 나누고 싶은가요? 아이에게 어떻게 설명할지 생각해 봤나요?");
+  q[1].push("각자 어디서 지내고, 아이는 누구와 어떻게 만나게 할지 정해 볼 수 있을까요?");
+  q[2].push("지금의 갈등을 아이가 어떻게 느끼고 있다고 생각하나요?");
+ }
+ if(kids==="자녀가 이미 성인이에요"){q[0].push("성인 자녀에게는 이 고민을 어떻게, 언제 이야기하고 싶은가요?")}
+ if(has("돈 문제가 걱정돼요")){
+  q[0].push("재산과 빚을 한 번 목록으로 정리해 본 적 있나요?");
+  q[1].push("두 집 생활비를 감당할 수 있을지, 생활비는 어떻게 나눌지 이야기해 볼 수 있을까요?");
+  q[2].push("돈 문제를 둘이 편하게 이야기할 수 있는 방법이 있을까요?");
+ }
+ if(has("믿음이 흔들렸어요")){
+  q[0].push("믿음이 깨진 일이 앞으로 풀릴 수 있을 것 같나요, 아니면 정리가 필요하다고 느끼나요?");
+  q[2].push("믿음을 다시 쌓으려면 상대에게 무엇이 필요하다고 느끼나요? 상대도 같은 마음일까요?");
+ }
+ if(has("대화가 잘 안 돼요")||has("자주 부딪혀요")){
+  q[1].push("떨어져 지내는 동안 연락과 만남은 어떻게 할지 정해 볼 수 있을까요?");
+  q[2].push("대화가 막히는 순간은 주로 언제인가요? 제3자(상담)가 함께 있으면 어떨까요?");
+ }
+ if(has("외롭고 지쳐요")){q[0].push("이혼 뒤에 기대하는 변화와 걱정되는 변화는 각각 무엇인가요?")}
+ if(years==="15년 이상"){q[0].push("오래 함께한 만큼 재산, 주거, 연금 등 정리할 것이 많을 수 있어요. 어떤 것부터 확인해 볼까요?")}
+ // 답변이 부족해도 비어 보이지 않게 기본 질문을 보충
+ if(!q[0].length)q[0].push("이혼하고 1년 뒤, 무엇이 달라져 있길 바라나요?");
+ if(!q[1].length)q[1].push("언제쯤 다시 생각해 볼지 기한을 정해 둘 수 있을까요?");
+ if(!q[2].length)q[2].push("관계가 나아졌다고 느낄 수 있는 모습은 어떤 건가요?");
+
+ var d=[
+  ["이혼",["법적 관계가 정리되고 재산·양육 문제를 정해야 해요","협의 또는 재판 절차가 있어요. 자녀가 있으면 숙려기간 등 절차가 더 있어요","생활 기반이 크게 바뀌어요. 아이에게는 설명과 안정이 중요해요","후련함과 상실감이 함께 올 수 있어요"]],
+  ["별거",["법적 관계는 유지되고 생활만 나눠요","따로 정해진 절차는 없지만 생활비·양육 약속을 정해 두면 좋아요","두 집 살림이라 비용이 늘 수 있어요","거리를 두고 생각할 시간이 생겨요. 기한이 없으면 오래 흔들릴 수 있어요"]],
+  ["관계 회복",["관계를 유지하며 문제를 다뤄요","부부 상담, 가족 상담 등을 함께 선택할 수 있어요","생활 변화는 적지만 노력이 양쪽에서 필요해요","시간이 걸리고, 한쪽만 원하면 어려울 수 있어요"]]
+ ],L=["법적 상태","절차","생활·자녀","마음"],h='<h2>세 가지 선택지, 같은 기준으로</h2>';
+ if(risk)h+='<div class="mirror" style="border:1px solid var(--warn)"><b>안전이 먼저예요.</b><br>어떤 선택을 하든 안전이 가장 우선이에요. 폭력이나 위협이 있는 관계에서는 관계 회복 노력보다 안전 확보가 먼저예요.<br>112 · 1366 · 109<button class="ghost" onclick="sos.showModal()">자세히 보기</button></div>';
+ h+=chosen.length
+  ?'<p class="sub">고르신 답변(‘'+chosen.map(esc).join("’, ‘")+'’)에 맞춰 아래 질문을 달리 보여드려요. 점수나 추천은 없어요.</p>'
+  :'<p class="sub">아직 고른 답변이 없어서 일반적인 질문을 보여드려요. 점수나 추천은 없어요.</p>';
+ d.forEach(function(x,i){
+  h+='<div class="cmp"><h3>'+x[0]+'</h3><dl>';
+  x[1].forEach(function(t,j){h+='<dt>'+L[j]+'</dt><dd>'+t+'</dd>'});
+  h+='<dt>내 상황에서 생각해 볼 질문</dt>';
+  q[i].forEach(function(t){h+='<dd>· '+esc(t)+'</dd>'});
+  h+='</dl></div>';
+ });
+ h+='<p class="sub">어느 쪽이 맞는지는 이 화면이 정하지 않아요. 일반적인 안내이고, 실제 절차는 상황마다 달라서 결정 전에 전문가나 법원에 확인해 주세요.</p>'+
+ '<button class="pri" onclick="go('+(Q.length+3)+')">이야기를 더 해볼래요</button><button class="ghost" onclick="back()">뒤로</button>';
+ app.innerHTML=h;
+}
+
+// 상담 화면은 자리표시자: 실제 AI 상담은 백엔드(Spring Boot)에서 모델을 호출해 연결한다.
+function talk(){
+ app.innerHTML='<h2>천천히 이야기해 보세요</h2><p class="sub">AI 상담은 다음 단계에서 연결할 자리예요. 지금은 마음에 있는 한 줄을 적어 두는 메모로 동작해요. 이 기기에서만 보여요.</p>'+
+ '<textarea id="memo" rows="6" style="width:100%;border:1px solid var(--bd);border-radius:12px;padding:12px;background:var(--card);color:var(--tx);font:inherit" placeholder="적고 싶을 때만 적어요">'+esc(S.memo||"")+'</textarea>'+
+ '<button class="pri" onclick="S.memo=document.getElementById(\'memo\').value;save();back()">저장하고 돌아가기</button>';
+}
+function browse(){
+ app.innerHTML='<h2>천천히 둘러보세요</h2><button class="opt" onclick="go('+(Q.length+2)+')">세 가지 선택지 비교</button><button class="opt" onclick="go('+(Q.length+3)+')">마음 메모 쓰기</button><button class="ghost" onclick="back()">뒤로</button>';
+}
+// PWA: 서비스 워커 등록. https 또는 localhost에서만 동작하므로 try/catch로 실패해도 앱은 정상 동작시킨다.
+if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js")}catch(e){}})}
+render();
+</script>
+</body>
+</html>
