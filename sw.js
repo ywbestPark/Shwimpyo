@@ -1,6 +1,6 @@
 // 서비스 워커: 앱 껍데기를 캐시해 오프라인에서도 열리게 한다.
 // 파일을 수정해 다시 배포할 때는 CACHE 버전 숫자를 올려야 옛 캐시가 교체된다.
-const CACHE = "shwimpyo-v2";
+const CACHE = "shwimpyo-v3";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
