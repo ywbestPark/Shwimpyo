@@ -40,6 +40,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .dock .sos{color:var(--warn);font-weight:600}
 dialog{border:1px solid var(--bd);border-radius:16px;background:var(--card);color:var(--tx);max-width:420px;width:calc(100% - 32px);padding:20px}
 dialog::backdrop{background:rgba(0,0,0,.45)}
+.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:var(--acbg);color:var(--ac);margin:0 4px 4px 0}
 </style>
 </head>
 <body>
@@ -56,6 +57,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <p>폭력이나 위협이 있거나 스스로를 해칠 것 같다면 먼저 아래로 연락해 주세요.</p>
   <p><b>112</b> 긴급 신고<br><b>1366</b> 여성긴급전화(24시간)<br><b>109</b> 자살예방 상담전화</p>
   <button class="pri" onclick="sos.close()">닫기</button>
+</dialog>
+
+<dialog id="exp">
+  <h2 style="margin-top:0">내보내기</h2>
+  <p class="sub">내용을 복사했어요. 복사가 안 됐다면 아래 글을 길게 눌러 전체 선택 후 복사하세요. 저장소의 posts.json을 열어 내용을 모두 지우고 붙여 넣은 뒤 Commit하면 모든 사용자에게 반영돼요.</p>
+  <textarea id="expText" rows="10" readonly style="width:100%;border:1px solid var(--bd);border-radius:12px;padding:10px;background:var(--bg);color:var(--tx);font:13px/1.4 monospace"></textarea>
+  <button class="pri" onclick="document.getElementById('exp').close()">닫기</button>
 </dialog>
 
 <script>
@@ -86,6 +94,9 @@ function renderStep(){
  if(S.step===Q.length+3)return talk();
  if(S.step===Q.length+4)return browse();
  if(S.step===Q.length+5)return cases();
+ if(S.step===Q.length+6)return stories();
+ if(S.step===Q.length+7)return story();
+ if(S.step===Q.length+8)return editor();
 }
 function render(){renderStep();updateDock()}
 function go(n){
@@ -103,7 +114,7 @@ function intro(){
  app.innerHTML='<h1>쉼표</h1><p class="sub">마음을 정리하는 잠깐의 쉼</p>'+
  '<div class="promise"><div>이름·연락처는 묻지 않아요</div><div>내용은 이 기기에만 저장돼요</div><div>어느 쪽으로도 권하지 않아요</div></div>'+
  '<p class="sub">결정은 언제나 당신의 몫이에요. 여기서는 생각을 정리하는 것만 도와요.</p>'+
- '<button class="pri" onclick="go(1)">편하게 시작하기</button><p class="sub" style="margin-top:28px;text-align:center">시험 버전 v6</p>';
+ '<button class="pri" onclick="go(1)">편하게 시작하기</button><button class="ghost" style="width:100%;text-align:center" onclick="go(Q.length+6)">이야기 둘러보기</button><p class="sub" style="margin-top:20px;text-align:center">시험 버전 v7</p>';
 }
 
 function ask(i){
@@ -140,6 +151,7 @@ function mirror(){
  '<p class="sub">어떻게 이어가고 싶으세요?</p>'+
  '<button class="opt" onclick="go('+(Q.length+3)+')">이야기를 더 해볼래요</button>'+
  '<button class="opt" onclick="go('+(Q.length+2)+')">선택지를 나란히 비교해 볼래요</button>'+
+ '<button class="opt" onclick="go('+(Q.length+6)+')">내 상황에 맞는 이야기를 읽어볼래요</button>'+
  '<button class="opt" onclick="go('+(Q.length+4)+')">오늘은 그냥 둘러볼게요</button>';
 }
 
@@ -296,8 +308,123 @@ function talk(){
  '<button class="pri" onclick="S.memo=document.getElementById(\'memo\').value;save();back()">저장하고 돌아가기</button>';
 }
 function browse(){
- app.innerHTML='<h2>천천히 둘러보세요</h2><button class="opt" onclick="go('+(Q.length+2)+')">세 가지 선택지 비교</button><button class="opt" onclick="go('+(Q.length+3)+')">마음 메모 쓰기</button><button class="ghost" onclick="back()">뒤로</button>';
+ app.innerHTML='<h2>천천히 둘러보세요</h2><button class="opt" onclick="go('+(Q.length+2)+')">세 가지 선택지 비교</button><button class="opt" onclick="go('+(Q.length+3)+')">마음 메모 쓰기</button><button class="opt" onclick="go('+(Q.length+6)+')">이야기 읽기</button><button class="ghost" onclick="back()">뒤로</button>';
 }
+// ===== 이야기(글) 기능: 운영자가 글을 올리고, 사용자의 답변에 맞는 글을 먼저 보여준다 =====
+// 글 데이터는 저장소의 posts.json에서 읽는다(서버 없이 무료 운영). 관리자는 이 기기에서 쓰고 고친 뒤 '내보내기'로 posts.json에 반영한다.
+// 실서비스에서는 이 부분이 서버 API(관리자 로그인 + 게시글 테이블)로 바뀐다.
+var TAGS=[["all","모두에게"],["f1","이혼 쪽으로 기울어요"],["f2","잠시 떨어지고 싶어요"],["f3","관계를 이어가고 싶어요"],["f4","마음이 왔다 갔다 해요"],["f5","아직 정리가 안 돼요"],["h1","자주 부딪혀요"],["h2","믿음이 흔들렸어요"],["h3","대화가 안 돼요"],["h4","돈 문제"],["h5","외롭고 지쳐요"],["h6","아이가 걱정돼요"],["k1","미성년 자녀"]];
+function tagLabel(c){for(var i=0;i<TAGS.length;i++)if(TAGS[i][0]===c)return TAGS[i][1];return c}
+var SEED=[{"id": "sample1", "title": "화가 올라올 때, 10분만 멈춰 보기", "tags": ["h1", "h3"], "updatedAt": 1794177702898, "body": "말다툼이 커질 때는 이기려고 하기보다 잠깐 멈추는 게 도움이 될 때가 있어요.\n‘지금 너무 격해졌어. 10분 뒤에 다시 얘기하자’처럼 말하고 자리를 떠 보세요. 상대를 피하는 게 아니라, 다시 돌아오겠다는 약속이 함께 있어야 해요.\n돌아와서는 ‘너는 항상 그래’보다 ‘나는 이럴 때 속상했어’처럼 내 감정을 중심으로 말해 보세요. 비난이 줄면 대화가 이어질 가능성이 커져요.\n다만 폭력이나 위협이 있는 상황에서는 이 방법이 맞지 않아요. 그럴 땐 안전이 먼저예요."}, {"id": "sample2", "title": "마음이 흔들릴 때, 종이 한 장으로 정리하기", "tags": ["f4", "f5", "h5"], "updatedAt": 1794177702897, "body": "결정을 내리지 못하는 날에는 결정을 미뤄도 괜찮아요. 대신 종이 한 장에 세 가지를 적어 보세요.\n① 지금 가장 힘든 것 ② 꼭 지키고 싶은 것 ③ 앞으로 달라지길 바라는 것\n정답을 찾으려 하지 말고, 떠오르는 대로 적기만 하세요. 며칠 뒤에 다시 읽으면 마음이 조금 정리돼 보일 수 있어요.\n혼자 감당하기 벅차다면 믿을 수 있는 사람이나 전문 상담을 찾아보는 것도 좋아요."}, {"id": "sample3", "title": "아이 앞에서 지키고 싶은 작은 약속들", "tags": ["h6", "k1"], "updatedAt": 1794177702896, "body": "부부 사이가 힘들 때 아이는 말하지 않아도 분위기를 느껴요.\n아이 앞에서 서로를 깎아내리는 말은 줄이고, 아이에게 ‘이건 네 잘못이 아니야’라고 분명히 말해 주세요.\n아이의 일정과 생활 규칙은 가능한 한 지켜 주세요. 달라지는 게 있다면 미리, 아이 눈높이에 맞춰 설명해 주는 게 좋아요.\n어떤 선택을 하더라도 아이에게 안정감을 주는 일은 계속 할 수 있어요."}];
+var POSTS=null,EDIT=null,PKEY="shwimpyo.posts.v1",ADMIN=false;
+// 관리자 모드: 주소 뒤에 ?admin=1 을 붙여 한 번 열면 이 기기에서 켜지고, ?admin=0 으로 끈다.
+// 이 모드의 수정은 그 기기에만 저장되므로 다른 사용자에게는 영향이 없다(실서버에서는 로그인 인증 필요).
+try{var qs=location.search;if(qs.indexOf("admin=1")>-1)localStorage.setItem("shwimpyo.admin","1");if(qs.indexOf("admin=0")>-1)localStorage.removeItem("shwimpyo.admin");ADMIN=localStorage.getItem("shwimpyo.admin")==="1"}catch(e){}
+function localPosts(){try{var r=localStorage.getItem(PKEY);return r?JSON.parse(r):null}catch(e){return null}}
+function savePosts(){try{localStorage.setItem(PKEY,JSON.stringify(POSTS))}catch(e){}}
+function loadPosts(done){
+ var lp=ADMIN?localPosts():null;            // 관리자는 이 기기의 수정본을 우선 사용
+ if(lp){POSTS=lp;done();return}
+ fetch("posts.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){POSTS=Array.isArray(j)?j:SEED.slice();done()}).catch(function(){POSTS=SEED.slice();done()});
+}
+// 사용자의 답변을 글 카테고리 코드로 바꾼다 (f=마음, h=힘든 것, k=자녀)
+function userTags(){
+ var a=S.a,t=[],fi=Q[0].o.indexOf(a.feel);
+ if(fi>-1)t.push("f"+(fi+1));
+ (a.hard||[]).forEach(function(x){var i=Q[3].o.indexOf(x);if(i>-1&&i<6)t.push("h"+(i+1))});
+ if(a.kids==="미성년 자녀가 있어요")t.push("k1");
+ return t;
+}
+// 맞는 카테고리 하나당 1점, '모두에게'는 0.5점. 점수가 높은 글을 먼저 보여준다.
+function score(p,ut){var s=0;(p.tags||[]).forEach(function(c){if(ut.indexOf(c)>-1)s+=1;else if(c==="all")s+=0.5});return s}
+function findPost(id){var L=POSTS||[];for(var i=0;i<L.length;i++)if(L[i].id===id)return L[i];return null}
+function chips(tags){return(tags||[]).map(function(c){return'<span class="chip">'+esc(tagLabel(c))+'</span>'}).join("")}
+function preview(b){var t=String(b||"").replace(/\s+/g," ");return t.length>60?t.slice(0,60)+"…":t}
+function postCard(p){
+ var adm=ADMIN?'<div style="display:flex;gap:16px;margin-top:6px"><button class="ghost" style="padding:4px 0" onclick="event.stopPropagation();editPost(\''+p.id+'\')">수정</button><button class="ghost" style="padding:4px 0;color:var(--warn)" onclick="event.stopPropagation();deletePost(\''+p.id+'\')">삭제</button></div>':"";
+ return'<div class="cmp" style="cursor:pointer" onclick="openStory(\''+p.id+'\')"><h3>'+esc(p.title)+'</h3><p class="sub" style="margin:0 0 8px">'+esc(preview(p.body))+'</p>'+chips(p.tags)+adm+'</div>';
+}
+function adminBar(){
+ return'<div class="mirror" style="font-size:14px"><b>관리자 모드</b> · 수정 내용은 이 기기에만 저장돼요.<br>다른 사용자에게 보이려면 ‘내보내기’ 내용을 저장소의 posts.json에 붙여 넣고 Commit해 주세요.</div>'+
+  '<button class="pri" style="margin-top:0" onclick="newPost()">＋ 새 글 쓰기</button>'+
+  '<div style="display:flex;gap:8px;margin-top:10px"><button class="opt" style="margin:0;width:auto;flex:1;text-align:center" onclick="exportPosts()">내보내기</button><button class="opt" style="margin:0;width:auto;flex:1;text-align:center" onclick="pullPublished()">공개된 글 불러오기</button></div>';
+}
+function stories(){
+ if(!POSTS){app.innerHTML='<p class="sub">불러오는 중…</p>';loadPosts(function(){if(S.step===Q.length+6)stories()});return}
+ var ut=userTags(),h='<h2>이야기</h2><p class="sub">운영자가 직접 쓰거나 고른 글이에요. 전문가의 상담이나 법률 자문은 아니에요.</p>';
+ if(ADMIN)h+=adminBar();
+ var sorted=POSTS.slice().sort(function(a,b){return score(b,ut)-score(a,ut)||(b.updatedAt||0)-(a.updatedAt||0)});
+ var matched=sorted.filter(function(p){return score(p,ut)>=1}),rest=sorted.filter(function(p){return score(p,ut)<1});
+ var saved=(S.saved||[]).map(findPost).filter(Boolean);
+ function sec(t,arr){return arr.length?'<h3 style="margin:20px 0 10px;font-size:16px">'+t+'</h3>'+arr.map(postCard).join(""):""}
+ if(!POSTS.length)h+='<p class="sub" style="margin-top:16px">아직 올라온 글이 없어요.</p>';
+ h+=sec("내 상황과 비슷한 글",ut.length?matched:[])+sec("저장한 글",saved)+sec(ut.length&&matched.length?"다른 글":"모든 글",ut.length?rest:sorted);
+ h+='<button class="ghost" onclick="back()">뒤로</button>';
+ app.innerHTML=h;
+}
+function openStory(id){S.openId=id;go(Q.length+7)}
+function story(){
+ if(!POSTS){loadPosts(function(){story()});return}
+ var p=findPost(S.openId);
+ if(!p){app.innerHTML='<p class="sub">글을 찾을 수 없어요.</p><button class="ghost" onclick="back()">뒤로</button>';return}
+ var saved=(S.saved||[]).indexOf(p.id)>-1,d=p.updatedAt?new Date(p.updatedAt):null;
+ var date=d?d.getFullYear()+"."+("0"+(d.getMonth()+1)).slice(-2)+"."+("0"+d.getDate()).slice(-2):"";
+ app.innerHTML='<h2>'+esc(p.title)+'</h2><div>'+chips(p.tags)+'</div>'+(date?'<p class="sub">'+date+'</p>':'')+
+  '<div style="margin:16px 0">'+esc(p.body).split("\n").map(function(x){return x?'<p>'+x+'</p>':""}).join("")+'</div>'+
+  '<p class="sub">일반적인 이야기라서 모든 상황에 맞지는 않아요. 안전이 걱정되면 112 · 1366을 먼저 확인해 주세요.</p>'+
+  '<button class="opt'+(saved?' sel':'')+'" onclick="toggleSave(\''+p.id+'\')">'+(saved?'저장했어요 (눌러서 취소)':'저장해 두기')+'</button><button class="ghost" onclick="back()">← 목록으로</button>';
+}
+// 저장한 글 목록은 사용자 기록(S)에 들어 있어서 ‘기록 모두 삭제’ 때 함께 지워진다
+function toggleSave(id){S.saved=S.saved||[];var i=S.saved.indexOf(id);if(i>-1)S.saved.splice(i,1);else S.saved.push(id);save();story()}
+
+// ----- 관리자: 새 글 / 수정 / 삭제 / 내보내기 -----
+function newPost(){EDIT={id:null,title:"",body:"",tags:[]};go(Q.length+8)}
+function editPost(id){var p=findPost(id);if(!p)return;EDIT={id:id,title:p.title,body:p.body,tags:(p.tags||[]).slice()};go(Q.length+8)}
+function syncEdit(){var t=document.getElementById("ptitle"),b=document.getElementById("pbody");if(EDIT&&t)EDIT.title=t.value;if(EDIT&&b)EDIT.body=b.value}
+function toggleTag(c){syncEdit();var i=EDIT.tags.indexOf(c);if(i>-1)EDIT.tags.splice(i,1);else EDIT.tags.push(c);editor()}
+function editor(){
+ if(!ADMIN){app.innerHTML='<p class="sub">관리자 모드가 꺼져 있어요.</p><button class="ghost" onclick="back()">뒤로</button>';return}
+ if(!POSTS){loadPosts(function(){editor()});return}
+ if(!EDIT)EDIT={id:null,title:"",body:"",tags:[]};
+ var box='width:100%;border:1px solid var(--bd);border-radius:12px;padding:12px;background:var(--card);color:var(--tx);font:inherit';
+ var h='<h2>'+(EDIT.id?'글 수정':'새 글 쓰기')+'</h2>'+
+  '<p class="sub">제목</p><input id="ptitle" value="'+esc(EDIT.title)+'" style="'+box+'">'+
+  '<p class="sub" style="margin-top:14px">내용 (줄바꿈이 그대로 보여요)</p><textarea id="pbody" rows="12" style="'+box+'">'+esc(EDIT.body)+'</textarea>'+
+  '<p class="sub" style="margin-top:14px">이 글이 어울리는 상황 (여러 개 선택)</p><div>'+
+  TAGS.map(function(t){var on=EDIT.tags.indexOf(t[0])>-1;return'<button class="opt'+(on?' sel':'')+'" style="display:inline-block;width:auto;margin:0 6px 8px 0;padding:6px 12px;font-size:14px" onclick="toggleTag(\''+t[0]+'\')">'+t[1]+'</button>'}).join("")+'</div>'+
+  '<button class="pri" onclick="savePost()">저장</button>'+
+  (EDIT.id?'<button class="ghost" style="color:var(--warn)" onclick="deletePost(\''+EDIT.id+'\')">이 글 삭제</button>':"")+
+  '<button class="ghost" onclick="EDIT=null;back()">취소</button>';
+ app.innerHTML=h;
+}
+function savePost(){
+ syncEdit();
+ var t=(EDIT.title||"").trim(),b=(EDIT.body||"").trim();
+ if(!t||!b){alert("제목과 내용을 입력해 주세요.");return}
+ if(!EDIT.tags.length){alert("어울리는 상황을 하나 이상 골라 주세요. (모두에게 보이려면 ‘모두에게’)");return}
+ var now=Date.now();
+ if(EDIT.id){var p=findPost(EDIT.id);if(p){p.title=t;p.body=b;p.tags=EDIT.tags.slice();p.updatedAt=now}}
+ else POSTS.push({id:"p"+now.toString(36)+Math.floor(Math.random()*1296).toString(36),title:t,body:b,tags:EDIT.tags.slice(),updatedAt:now});
+ savePosts();EDIT=null;back();
+}
+function deletePost(id){
+ if(!confirm("이 글을 삭제할까요? 되돌릴 수 없어요."))return;
+ POSTS=POSTS.filter(function(p){return p.id!==id});
+ S.saved=(S.saved||[]).filter(function(x){return x!==id});
+ savePosts();save();
+ if(S.step===Q.length+8){EDIT=null;back()}else render();
+}
+function exportPosts(){
+ var j=JSON.stringify(POSTS,null,1);
+ document.getElementById("expText").value=j;
+ try{navigator.clipboard.writeText(j)}catch(e){}
+ document.getElementById("exp").showModal();
+}
+function pullPublished(){
+ if(!confirm("이 기기에서 수정한 내용을 지우고, 공개된 글로 바꿀까요?"))return;
+ fetch("posts.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){POSTS=j;savePosts();render()}).catch(function(){alert("공개된 posts.json을 찾지 못했어요.")});
+}
+
 // PWA: 서비스 워커 등록. https 또는 localhost에서만 동작하므로 try/catch로 실패해도 앱은 정상 동작시킨다.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js")}catch(e){}})}
 render();
