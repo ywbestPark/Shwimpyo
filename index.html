@@ -114,7 +114,7 @@ function intro(){
  app.innerHTML='<h1>쉼표</h1><p class="sub">마음을 정리하는 잠깐의 쉼</p>'+
  '<div class="promise"><div>이름·연락처는 묻지 않아요</div><div>내용은 이 기기에만 저장돼요</div><div>어느 쪽으로도 권하지 않아요</div></div>'+
  '<p class="sub">결정은 언제나 당신의 몫이에요. 여기서는 생각을 정리하는 것만 도와요.</p>'+
- '<button class="pri" onclick="go(1)">편하게 시작하기</button><button class="ghost" style="width:100%;text-align:center" onclick="go(Q.length+6)">이야기 둘러보기</button><p class="sub" style="margin-top:20px;text-align:center">시험 버전 v7</p>';
+ '<button class="pri" onclick="go(1)">편하게 시작하기</button><button class="ghost" style="width:100%;text-align:center" onclick="go(Q.length+6)">이야기 둘러보기</button><p class="sub" style="margin-top:20px;text-align:center">시험 버전 v8</p>';
 }
 
 function ask(i){
@@ -313,9 +313,12 @@ function browse(){
 // ===== 이야기(글) 기능: 운영자가 글을 올리고, 사용자의 답변에 맞는 글을 먼저 보여준다 =====
 // 글 데이터는 저장소의 posts.json에서 읽는다(서버 없이 무료 운영). 관리자는 이 기기에서 쓰고 고친 뒤 '내보내기'로 posts.json에 반영한다.
 // 실서비스에서는 이 부분이 서버 API(관리자 로그인 + 게시글 테이블)로 바뀐다.
-var TAGS=[["all","모두에게"],["f1","이혼 쪽으로 기울어요"],["f2","잠시 떨어지고 싶어요"],["f3","관계를 이어가고 싶어요"],["f4","마음이 왔다 갔다 해요"],["f5","아직 정리가 안 돼요"],["h1","자주 부딪혀요"],["h2","믿음이 흔들렸어요"],["h3","대화가 안 돼요"],["h4","돈 문제"],["h5","외롭고 지쳐요"],["h6","아이가 걱정돼요"],["k1","미성년 자녀"]];
+var TAGS=[["all","모두에게"],["f1","이혼 쪽으로 기울어요"],["f2","잠시 떨어지고 싶어요"],["f3","관계를 이어가고 싶어요"],["f4","마음이 왔다 갔다 해요"],["f5","아직 정리가 안 돼요"],["h1","자주 부딪혀요"],["h2","믿음이 흔들렸어요"],["h3","대화가 안 돼요"],["h4","돈 문제"],["h5","외롭고 지쳐요"],["h6","아이가 걱정돼요"],["k1","미성년 자녀"],
+ // 주제(t): 질문 답변과 아래 TOPIC_MAP으로 연결되어, 사용자의 상황에 맞는 주제가 자동으로 앞에 나온다
+ ["t1","아이에게 설명하기"],["t2","함께 키우기"],["t3","감정 다루기"],["t4","나를 돌보기"],["t5","대화·소통"],["t6","관계 점검"],["t7","이혼 이후의 일상"],["t8","결정 앞에서"],["t9","주변과의 관계"],["t10","일·돈·생활 정리"]];
+function groupOf(c){var k=c.charAt(0);return c==="all"?"공통":k==="f"?"마음 상태":k==="h"?"힘든 것":k==="k"?"자녀":"주제"}
 function tagLabel(c){for(var i=0;i<TAGS.length;i++)if(TAGS[i][0]===c)return TAGS[i][1];return c}
-var SEED=[{"id": "sample1", "title": "화가 올라올 때, 10분만 멈춰 보기", "tags": ["h1", "h3"], "updatedAt": 1794177702898, "body": "말다툼이 커질 때는 이기려고 하기보다 잠깐 멈추는 게 도움이 될 때가 있어요.\n‘지금 너무 격해졌어. 10분 뒤에 다시 얘기하자’처럼 말하고 자리를 떠 보세요. 상대를 피하는 게 아니라, 다시 돌아오겠다는 약속이 함께 있어야 해요.\n돌아와서는 ‘너는 항상 그래’보다 ‘나는 이럴 때 속상했어’처럼 내 감정을 중심으로 말해 보세요. 비난이 줄면 대화가 이어질 가능성이 커져요.\n다만 폭력이나 위협이 있는 상황에서는 이 방법이 맞지 않아요. 그럴 땐 안전이 먼저예요."}, {"id": "sample2", "title": "마음이 흔들릴 때, 종이 한 장으로 정리하기", "tags": ["f4", "f5", "h5"], "updatedAt": 1794177702897, "body": "결정을 내리지 못하는 날에는 결정을 미뤄도 괜찮아요. 대신 종이 한 장에 세 가지를 적어 보세요.\n① 지금 가장 힘든 것 ② 꼭 지키고 싶은 것 ③ 앞으로 달라지길 바라는 것\n정답을 찾으려 하지 말고, 떠오르는 대로 적기만 하세요. 며칠 뒤에 다시 읽으면 마음이 조금 정리돼 보일 수 있어요.\n혼자 감당하기 벅차다면 믿을 수 있는 사람이나 전문 상담을 찾아보는 것도 좋아요."}, {"id": "sample3", "title": "아이 앞에서 지키고 싶은 작은 약속들", "tags": ["h6", "k1"], "updatedAt": 1794177702896, "body": "부부 사이가 힘들 때 아이는 말하지 않아도 분위기를 느껴요.\n아이 앞에서 서로를 깎아내리는 말은 줄이고, 아이에게 ‘이건 네 잘못이 아니야’라고 분명히 말해 주세요.\n아이의 일정과 생활 규칙은 가능한 한 지켜 주세요. 달라지는 게 있다면 미리, 아이 눈높이에 맞춰 설명해 주는 게 좋아요.\n어떤 선택을 하더라도 아이에게 안정감을 주는 일은 계속 할 수 있어요."}];
+var SEED=[{"id": "sample1", "title": "화가 올라올 때, 10분만 멈춰 보기", "tags": ["h1", "h3", "t5"], "body": "말다툼이 커질 때는 이기려고 하기보다 잠깐 멈추는 게 도움이 될 때가 있어요.\n‘지금 너무 격해졌어. 10분 뒤에 다시 얘기하자’처럼 말하고 자리를 떠 보세요. 상대를 피하는 게 아니라, 다시 돌아오겠다는 약속이 함께 있어야 해요.\n돌아와서는 ‘너는 항상 그래’보다 ‘나는 이럴 때 속상했어’처럼 내 감정을 중심으로 말해 보세요. 비난이 줄면 대화가 이어질 가능성이 커져요.\n다만 폭력이나 위협이 있는 상황에서는 이 방법이 맞지 않아요. 그럴 땐 안전이 먼저예요.", "updatedAt": 1794296817737}, {"id": "sample2", "title": "마음이 흔들릴 때, 종이 한 장으로 정리하기", "tags": ["f4", "f5", "h5", "t8"], "body": "결정을 내리지 못하는 날에는 결정을 미뤄도 괜찮아요. 대신 종이 한 장에 세 가지를 적어 보세요.\n① 지금 가장 힘든 것 ② 꼭 지키고 싶은 것 ③ 앞으로 달라지길 바라는 것\n정답을 찾으려 하지 말고, 떠오르는 대로 적기만 하세요. 며칠 뒤에 다시 읽으면 마음이 조금 정리돼 보일 수 있어요.\n혼자 감당하기 벅차다면 믿을 수 있는 사람이나 전문 상담을 찾아보는 것도 좋아요.", "updatedAt": 1794296816737}, {"id": "sample3", "title": "아이 앞에서 지키고 싶은 작은 약속들", "tags": ["h6", "k1", "t1"], "body": "부부 사이가 힘들 때 아이는 말하지 않아도 분위기를 느껴요.\n아이 앞에서 서로를 깎아내리는 말은 줄이고, 다툼이 생겼다면 아이가 없는 곳에서 이어 가 보세요.\n아이의 일정과 생활 규칙은 가능한 한 지켜 주세요. 달라지는 게 있다면 미리, 아이 눈높이에 맞춰 설명해 주는 게 좋아요.\n어떤 선택을 하더라도 아이에게 안정감을 주는 일은 계속 할 수 있어요.", "updatedAt": 1794296815737}];
 var POSTS=null,EDIT=null,PKEY="shwimpyo.posts.v1",ADMIN=false;
 // 관리자 모드: 주소 뒤에 ?admin=1 을 붙여 한 번 열면 이 기기에서 켜지고, ?admin=0 으로 끈다.
 // 이 모드의 수정은 그 기기에만 저장되므로 다른 사용자에게는 영향이 없다(실서버에서는 로그인 인증 필요).
@@ -328,12 +331,15 @@ function loadPosts(done){
  fetch("posts.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){POSTS=Array.isArray(j)?j:SEED.slice();done()}).catch(function(){POSTS=SEED.slice();done()});
 }
 // 사용자의 답변을 글 카테고리 코드로 바꾼다 (f=마음, h=힘든 것, k=자녀)
+var TOPIC_MAP={f1:["t7","t8","t10"],f2:["t8","t10","t2"],f3:["t5","t6"],f4:["t8","t3"],f5:["t8","t3"],h1:["t5","t3"],h2:["t6","t3"],h3:["t5"],h4:["t10"],h5:["t4","t3","t9"],h6:["t1","t2"],k1:["t1","t2"]};
 function userTags(){
  var a=S.a,t=[],fi=Q[0].o.indexOf(a.feel);
  if(fi>-1)t.push("f"+(fi+1));
  (a.hard||[]).forEach(function(x){var i=Q[3].o.indexOf(x);if(i>-1&&i<6)t.push("h"+(i+1))});
  if(a.kids==="미성년 자녀가 있어요")t.push("k1");
- return t;
+ var out=t.slice();
+ t.forEach(function(c){(TOPIC_MAP[c]||[]).forEach(function(x){if(out.indexOf(x)<0)out.push(x)})}); // 상황에 어울리는 주제도 함께 맞춘다
+ return out;
 }
 // 맞는 카테고리 하나당 1점, '모두에게'는 0.5점. 점수가 높은 글을 먼저 보여준다.
 function score(p,ut){var s=0;(p.tags||[]).forEach(function(c){if(ut.indexOf(c)>-1)s+=1;else if(c==="all")s+=0.5});return s}
@@ -349,16 +355,32 @@ function adminBar(){
   '<button class="pri" style="margin-top:0" onclick="newPost()">＋ 새 글 쓰기</button>'+
   '<div style="display:flex;gap:8px;margin-top:10px"><button class="opt" style="margin:0;width:auto;flex:1;text-align:center" onclick="exportPosts()">내보내기</button><button class="opt" style="margin:0;width:auto;flex:1;text-align:center" onclick="pullPublished()">공개된 글 불러오기</button></div>';
 }
+var TOPIC=null,LIMIT=12;
+function setTopic(c){TOPIC=(TOPIC===c)?null:c;LIMIT=12;stories()}
+function moreStories(){LIMIT+=12;stories()}
+function topicBar(){
+ return'<p class="sub" style="margin:14px 0 6px">주제별로 보기</p><div>'+TAGS.filter(function(t){return t[0].charAt(0)==="t"}).map(function(t){var on=TOPIC===t[0];return'<button class="opt'+(on?' sel':'')+'" style="display:inline-block;width:auto;margin:0 6px 8px 0;padding:6px 12px;font-size:14px" onclick="setTopic(\''+t[0]+'\')">'+t[1]+'</button>'}).join("")+'</div>';
+}
 function stories(){
  if(!POSTS){app.innerHTML='<p class="sub">불러오는 중…</p>';loadPosts(function(){if(S.step===Q.length+6)stories()});return}
  var ut=userTags(),h='<h2>이야기</h2><p class="sub">운영자가 직접 쓰거나 고른 글이에요. 전문가의 상담이나 법률 자문은 아니에요.</p>';
  if(ADMIN)h+=adminBar();
+ h+=topicBar();
  var sorted=POSTS.slice().sort(function(a,b){return score(b,ut)-score(a,ut)||(b.updatedAt||0)-(a.updatedAt||0)});
- var matched=sorted.filter(function(p){return score(p,ut)>=1}),rest=sorted.filter(function(p){return score(p,ut)<1});
- var saved=(S.saved||[]).map(findPost).filter(Boolean);
- function sec(t,arr){return arr.length?'<h3 style="margin:20px 0 10px;font-size:16px">'+t+'</h3>'+arr.map(postCard).join(""):""}
+ function sec(t,arr){
+  if(!arr.length)return"";
+  var more=arr.length>LIMIT?'<button class="ghost" style="width:100%;text-align:center" onclick="moreStories()">더 보기 ('+(arr.length-LIMIT)+'편 남음)</button>':"";
+  return'<h3 style="margin:20px 0 10px;font-size:16px">'+t+'</h3>'+arr.slice(0,LIMIT).map(postCard).join("")+more;
+ }
  if(!POSTS.length)h+='<p class="sub" style="margin-top:16px">아직 올라온 글이 없어요.</p>';
- h+=sec("내 상황과 비슷한 글",ut.length?matched:[])+sec("저장한 글",saved)+sec(ut.length&&matched.length?"다른 글":"모든 글",ut.length?rest:sorted);
+ if(TOPIC){
+  var list=sorted.filter(function(p){return(p.tags||[]).indexOf(TOPIC)>-1});
+  h+=sec(tagLabel(TOPIC)+' ('+list.length+'편)',list)+(list.length?'':'<p class="sub" style="margin-top:16px">이 주제의 글이 아직 없어요.</p>');
+ }else{
+  var matched=sorted.filter(function(p){return score(p,ut)>=1}),rest=sorted.filter(function(p){return score(p,ut)<1});
+  var saved=(S.saved||[]).map(findPost).filter(Boolean);
+  h+=sec("내 상황과 비슷한 글",ut.length?matched:[])+sec("저장한 글",saved)+sec(ut.length&&matched.length?"다른 글":"모든 글",ut.length?rest:sorted);
+ }
  h+='<button class="ghost" onclick="back()">뒤로</button>';
  app.innerHTML=h;
 }
@@ -391,11 +413,21 @@ function editor(){
   '<p class="sub">제목</p><input id="ptitle" value="'+esc(EDIT.title)+'" style="'+box+'">'+
   '<p class="sub" style="margin-top:14px">내용 (줄바꿈이 그대로 보여요)</p><textarea id="pbody" rows="12" style="'+box+'">'+esc(EDIT.body)+'</textarea>'+
   '<p class="sub" style="margin-top:14px">이 글이 어울리는 상황 (여러 개 선택)</p><div>'+
-  TAGS.map(function(t){var on=EDIT.tags.indexOf(t[0])>-1;return'<button class="opt'+(on?' sel':'')+'" style="display:inline-block;width:auto;margin:0 6px 8px 0;padding:6px 12px;font-size:14px" onclick="toggleTag(\''+t[0]+'\')">'+t[1]+'</button>'}).join("")+'</div>'+
+  tagButtons()+'</div>'+
   '<button class="pri" onclick="savePost()">저장</button>'+
   (EDIT.id?'<button class="ghost" style="color:var(--warn)" onclick="deletePost(\''+EDIT.id+'\')">이 글 삭제</button>':"")+
   '<button class="ghost" onclick="EDIT=null;back()">취소</button>';
  app.innerHTML=h;
+}
+function tagButtons(){
+ var h="",last="";
+ TAGS.forEach(function(t){
+  var g=groupOf(t[0]);
+  if(g!==last){h+='<p class="sub" style="margin:10px 0 6px;font-size:13px">'+g+'</p>';last=g}
+  var on=EDIT.tags.indexOf(t[0])>-1;
+  h+='<button class="opt'+(on?' sel':'')+'" style="display:inline-block;width:auto;margin:0 6px 8px 0;padding:6px 12px;font-size:14px" onclick="toggleTag(\''+t[0]+'\')">'+t[1]+'</button>';
+ });
+ return h;
 }
 function savePost(){
  syncEdit();
